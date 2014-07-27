@@ -186,54 +186,6 @@
                 }
             }
         });
-        
-        //-----------------------------------------------------------
-        
-        var SideView = Backbone.View.extend({
-            template: _.template($('#side-pane').html()),
-            events: {
-                'keyup input': 'keyPressEventHandler'
-            },
-            render: function() {
-                this.$el.html(this.template());
-                return this;
-            },
-            initialize: function(notes, viewer) {
-                this.notes = notes;
-                this.viewer = viewer;
-            },
-            noteNew: function() {
-                if(this.$el.find('#note').length == 0) {
-                    this.$el.find('#side-pane-container').append('<div id="note"><input type="text" name="note" /></div>');
-                    this.$el.find('#note input').focus();
-                }
-            },
-            noteDestroy: function() {
-                this.$el.find('#note').remove();
-            },
-            noteToggle: function() {
-                if(this.$el.find('#note').length == 0) {
-                    this.noteNew();
-                } else {
-                    this.noteDestroy();
-                }
-            },
-            noteCreate: function() {
-                if(this.getNoteValue().length > 0) {
-                    this.notes.create({time: this.viewer.getCurrentTime(), content: this.getNoteValue(), number: this.notes.length});
-                }
-                this.noteDestroy();
-                $('#window-container').trigger("change-mode", "viewer");
-            },
-            getNoteValue: function() {
-                return this.$el.find('#note input').val();
-            },
-            keyPressEventHandler: function(event) {
-                if(event.keyCode === 13) {
-                    this.noteCreate();
-                }
-            }
-        });
 
         //-----------------------------------------------------------
         var NoteView = Backbone.View.extend({
@@ -243,22 +195,28 @@
                 'click .submit': 'updateNote',
                 'keyup input': 'keyPressEventHandler'
             },
+            initialize: function(notes, model) {
+                this.notes = notes;
+                this.model = model;
+            },
             render: function() {
                 this.$el.html("<tr id='note-" + this.model.get('number') + "'><td class='time'>" + this.model.get('time') + "</td><td>" + this.model.get('content') + "</td></tr>");
                 return this;
             },
-            renderEdit: function() {
+            renderEdit: function(isNew) {
                 $('#window-container').trigger("change-mode", "note-list");
-                this.$el.html("<tr id='note-" + this.model.get('number') + "'><form><td><input type='text' name='time' class='time' value='" + this.model.get('time') + "' /></td><td><input type='text' name='content' class='content' value='" + this.model.get('content') + "' /></td><td><input type='submit' value='Submit'></td></tr></form>");
+                this.$el.html("<tr id='note-" + this.model.get('number') + "' class='edit'><form><td><input type='text' name='time' class='time' value='" + this.model.get('time') + "' /></td><td><input type='text' name='content' class='content' value='" + this.model.get('content') + "' /></td><td><input type='submit' value='Submit'></td></tr></form>");
                 this.$el.find(".content").focus();
                 return this;
             },
             updateNote: function() {
                 var time = this.$el.find('.time').val();
                 var content = this.$el.find('.content').val();
-                this.model.set('time', time);
-                this.model.set('content', content);
-                this.render();
+                this.model.set({time: time,content:content});
+                this.$el.remove();
+                if(this.model.isNew())
+                    this.notes.create(this.model);
+                //this.render();
             },
             keyPressEventHandler: function(event) {
                 if(event.keyCode === 13) {
@@ -269,13 +227,14 @@
         
         //-----------------------------------------------------------
         
-        var BottomView = Backbone.View.extend({
+        var NoteListView = Backbone.View.extend({
             template: _.template($('#bottom-pane').html()),
             initialize: function(notes, viewer) {
                 this.notes = notes;
                 this.viewer = viewer;
 
                 this.listenTo(notes, 'add', this.addNote);
+                this.listenTo(notes, 'change', this.addNote);
             },
             render: function() {
                 this.$el.html(this.template());
@@ -285,13 +244,15 @@
                 this.$el.find('tr').first().addClass("current");
             },
             addNote: function(noteModel) {
-                var note = new NoteView({model: noteModel});
+                var note = new NoteView(this.notes, noteModel);
                 this.$el.find('#bottom-pane-container').append(note.render().el);
+                $('#window-container').trigger("change-mode", "viewer");
             },
             newNote: function() {
                 var model = new NoteModel({time: this.viewer.getCurrentTime(), content: '', number: this.notes.length});
-                var note = new NoteView({model: model});
+                var note = new NoteView(this.notes, model);
                 this.$el.append(note.renderEdit().el);
+                this.$el.find('.edit .content').focus();
                 $('#window-container').trigger("change-mode", "editor");
             },
             previous: function() {
@@ -334,11 +295,9 @@
                 this.notes = new NoteCollection;
 
                 this.viewerPane = new ViewerView;
-                this.sidePane = new SideView(this.notes, this.viewerPane);
-                this.bottomPane = new BottomView(this.notes, this.viewerPane);
+                this.bottomPane = new NoteListView(this.notes, this.viewerPane);
                 
                 this.$el.append(this.viewerPane.render().el);
-                this.$el.append(this.sidePane.render().el);
                 this.$el.append(this.bottomPane.render().el);
 
                 this.changeMode('viewer');
@@ -384,13 +343,11 @@
                 });
                 
                 shortcut.add("c",function() {
-                    //self.sidePane.noteNew();
                     self.bottomPane.newNote();
                     self.changeMode('editor');
                 });
                 
                 shortcut.add("i",function() {
-                    //self.sidePane.noteNew();
                     self.bottomPane.newNote();
                     self.changeMode('editor');
                 });
@@ -405,12 +362,9 @@
                 var self = this;
                 
                 shortcut.removeAll();
-                /*
-                shortcut.add("Enter",function() {
-                    self.sidePane.noteCreate();
-                    self.changeMode('viewer');
-                });
-                */
+
+                // TODO: Add Enter Shortcut that edits the current node on
+
                 shortcut.add("Ctrl+1",function() {
                     self.changeMode('viewer');
                 });
@@ -443,22 +397,6 @@
                 });
 
                 self.bottomPane.selected();
-                self.mode = 'note-list';
-            },
-            setModeNoteEdit: function() {
-                var self = this;
-                
-                shortcut.removeAll();
-
-                shortcut.add("Ctrl+1",function() {
-                    self.changeMode('viewer');
-                });
-
-                shortcut.add("Ctrl+2",function() {
-                    self.changeMode('editor');
-                });
-
-                self.previous_mode = self.mode;
                 self.mode = 'note-list';
             }
         });
