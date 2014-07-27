@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="http://code.jquery.com/jquery-2.1.1.js"></script>
+        <script src="http://jashkenas.github.io/underscore/underscore-min.js"></script>
+        <script src="http://jashkenas.github.io/backbone/backbone-min.js"></script>
+        <script src="shortcuts.js"></script>
+        <meta charset="utf-8">
+        <title>Video Note Taker</title>
+        <style>
+            #window-container {
+                width: 1080px;
+            }
+          
+            #viewer-pane-container {
+                background-color: blue;
+                width: 640px;
+                height: 390px;
+                float: left;
+            }
+
+            #side-pane-container {
+                background-color: green;
+                width: 400px;
+                height: 420px;
+                float: left;
+            }
+
+            #bottom-pane-container {
+                background-color: brown;
+                width: 1080px;
+                //height: 480px;
+                clear: both;
+                table-layout: fixed;
+                //margin: 0px;
+            }
+            #bottom-pane-container tr {
+                height: 30px;
+            }
+            #bottom-pane-container .time {
+                width: 30px;
+                border-right: 1px solid black;
+                background-color: gray;
+            }
+            #player-controls {
+                height: 30px;
+                width: 649px
+            }
+        </style>
+          
+        <script id="viewer-pane" type="text/template">
+            <div id="viewer-pane-container">
+                <div id="player">
+                </div>
+                <div id="player-controls">
+                </div>
+            </div>
+        </script>
+        <script id="side-pane" type="text/template">
+            <div id="side-pane-container">
+
+            </div>
+        </script>
+        <script id="bottom-pane" type="text/template">
+            <table id="bottom-pane-container">
+
+            </table>
+        </script>
+        <script id="container" type="text/template">
+            <div id="window-container">
+                Hey
+            </div>
+        </script>
+    </head>
+    <body>
+        <div id='debug-header'>
+            DebugStuff
+            <br />
+            <table>
+                <tr>
+                    <td>
+                        View Mode: 
+                    </td>
+                    <td id="debug-view-mode" style="font-weight: bold">
+                         video
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div style="clear: both"></div>
+    </body>
+    <script>
+    
+    //-----------------------------------------------------------
+        var NoteModel = Backbone.Model.extend({
+            'defaults': {
+                time: 0,
+                content: "" 
+            }
+        });
+
+        var NoteCollection = Backbone.Collection.extend({
+            model: NoteModel,
+            url: '/'
+        });
+
+        var ViewerView = Backbone.View.extend({
+            template: _.template($('#viewer-pane').html()),
+            initialize: function() {
+
+            },
+            render: function() {
+                this.$el.html(this.template());
+                this.createPlayer();
+                return this;
+            },
+            createPlayer: function() {
+                var tag = document.createElement('script');
+                var self = this;
+                tag.src = "https://www.youtube.com/iframe_api";
+                var firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                
+                onYouTubeIframeAPIReady = function() {
+                    self.player = new YT.Player('player', {
+                        height: '390',
+                        width: '640',
+                        videoId: 'fAW1j71o5KU',
+                        playerVars: { 'controls': 0 },
+                        events: {
+                            'onReady': onPlayerStateChange.bind(self),
+                            'onStateChange': onPlayerStateChange.bind(self)
+                        }
+                    });
+                }
+
+                // 4. The API will call this function when the video player is ready.
+                onPlayerReady = function(event) {
+                    event.target.playVideo();
+                }
+         
+                // 5. The API calls this function when the player's state changes.
+                onPlayerStateChange = function(event) {
+                    document.getElementById('player').blur();
+                    $('#player-controls').html(parseInt(this.getCurrentTime()));
+                }  
+            },
+            play: function() {
+                this.player.playVideo();
+            },
+            pause: function() {
+                this.player.pauseVideo();
+            },
+            stop: function() {
+                this.player.stopVideo();
+            },
+            seekTo: function(seconds) {
+                this.player.seekTo(seconds);
+            },
+            getCurrentTime: function() {
+                return this.player.getCurrentTime();
+            },
+            goBack: function(seconds) {
+                var currentTime = this.getCurrentTime();
+                this.seekTo(currentTime - seconds);
+            },
+            goForward: function(seconds) {
+                var currentTime = this.getCurrentTime();
+                this.seekTo(currentTime + seconds);
+            },
+            toggle: function() {
+                var playerState = this.player.getPlayerState();
+                
+                if(playerState === YT.PlayerState.ENDED ||
+                    playerState === YT.PlayerState.PAUSED ||
+                    playerState === YT.PlayerState.BUFFERING ||
+                    playerState === YT.PlayerState.CUED ||
+                    playerState === -1) {
+                    this.play();
+                } else {
+                    this.pause();
+                }
+            }
+        });
+        
+        //-----------------------------------------------------------
+        
+        var SideView = Backbone.View.extend({
+            template: _.template($('#side-pane').html()),
+            events: {
+                'keyup input': 'keyPressEventHandler'
+            },
+            render: function() {
+                this.$el.html(this.template());
+                return this;
+            },
+            initialize: function(notes, viewer) {
+                this.notes = notes;
+                this.viewer = viewer;
+            },
+            noteNew: function() {
+                if(this.$el.find('#note').length == 0) {
+                    this.$el.find('#side-pane-container').append('<div id="note"><input type="text" name="note" /></div>');
+                    this.$el.find('#note input').focus();
+                }
+            },
+            noteDestroy: function() {
+                this.$el.find('#note').remove();
+            },
+            noteToggle: function() {
+                if(this.$el.find('#note').length == 0) {
+                    this.noteNew();
+                } else {
+                    this.noteDestroy();
+                }
+            },
+            noteCreate: function() {
+                if(this.getNoteValue().length > 0) {
+                    this.notes.create({time: this.viewer.getCurrentTime(), content: this.getNoteValue()});
+                }
+                this.noteDestroy();
+                $('#window-container').trigger("change-mode", "viewer");
+            },
+            getNoteValue: function() {
+                return this.$el.find('#note input').val();
+            },
+            keyPressEventHandler: function(event) {
+                if(event.keyCode === 13) {
+                    this.noteCreate();
+                }
+            }
+        });
+
+        //-----------------------------------------------------------
+        var NoteView = Backbone.View.extend({
+            class: 'note',
+            events: {
+                'click td.time': 'renderEdit',
+                'click .submit': 'updateNote',
+                'keyup input': 'keyPressEventHandler'
+            },
+            render: function() {
+                this.$el.html("<tr><td class='time'>" + this.model.get('time') + "</td><td>" + this.model.get('content') + "</td></tr>");
+                return this;
+            },
+            renderEdit: function() {
+                $('#window-container').trigger("change-mode", "note-list");
+                this.$el.html("<tr><form><td><input type='text' name='time' class='time' value='" + this.model.get('time') + "' /></td><td><input type='text' name='content' class='content' value='" + this.model.get('content') + "' /></td><td><input type='submit' value='Submit'></td></tr></form>");
+                this.$el.find(".time").focus();
+                return this;
+            },
+            updateNote: function() {
+                var time = this.$el.find('.time').val();
+                var content = this.$el.find('.content').val();
+                this.model.set('time', time);
+                this.model.set('content', content);
+                this.render();
+            },
+            keyPressEventHandler: function(event) {
+                if(event.keyCode === 13) {
+                    this.updateNote();
+                }
+            }
+        });
+        
+        //-----------------------------------------------------------
+        
+        var BottomView = Backbone.View.extend({
+            template: _.template($('#bottom-pane').html()),
+            initialize: function(notes) {
+                this.listenTo(notes, 'add', this.addOne);
+            },
+            render: function() {
+                this.$el.html(this.template());
+                return this;
+            },
+            addOne: function(noteModel) {
+                var note = new NoteView({model: noteModel});
+                this.$el.find('#bottom-pane-container').append(note.render().el);
+            }
+        });
+        
+        //-----------------------------------------------------------
+        
+        var WorkspaceView = Backbone.View.extend({
+            template: _.template($('#container').html()),
+            id: "window-container",
+            events: {
+                'change-mode': function(event, mode) {this.changeMode(mode)}
+            },
+            initialize: function() {
+                this.notes = new NoteCollection;
+
+                this.viewerPane = new ViewerView;
+                this.sidePane = new SideView(this.notes, this.viewerPane);
+                this.bottomPane = new BottomView(this.notes);
+                
+                this.$el.append(this.viewerPane.render().el);
+                this.$el.append(this.sidePane.render().el);
+                this.$el.append(this.bottomPane.render().el);
+
+                this.changeMode('viewer');
+            },
+            render: function() {
+                $('body').append(this.el);
+            },
+            changeMode: function(mode) {
+                var self = this;
+
+                if(mode === 'viewer' && this.mode !== 'viewer') {
+                    self.setModeViewer();
+                    $('#debug-view-mode').html("viewer");
+                } else if(mode === 'editor' && this.mode !== 'editor') {
+                    self.setModeEditor();
+                    $('#debug-view-mode').html("editor");
+                } else if(mode === 'note-list' && this.mode !== 'note-list') {
+                    self.setModeNoteList();
+                    $('#debug-view-mode').html("note-list");
+                }
+            },
+            setModeViewer: function() {
+                var self = this;
+                
+                shortcut.removeAll();
+
+                shortcut.add("k",function() {
+                    self.viewerPane.toggle();
+                });
+                
+                shortcut.add("l",function() {
+                    self.viewerPane.goForward(2);
+                });
+                shortcut.add("º",function() {
+                    self.viewerPane.goForward(10);
+                });
+                
+                shortcut.add("j",function() {
+                    self.viewerPane.goBack(2);
+                });
+                shortcut.add("h",function() {
+                    self.viewerPane.goBack(10);
+                });
+                
+                shortcut.add("c",function() {
+                    self.sidePane.noteNew();
+                    self.changeMode('editor');
+                });
+                
+                shortcut.add("i",function() {
+                    self.sidePane.noteNew();
+                    self.changeMode('editor');
+                });
+
+                shortcut.add("Ctrl+3",function() {
+                    self.changeMode('note-list');
+                });
+
+                self.mode = 'viewer';
+            },
+            setModeEditor: function() {
+                var self = this;
+                
+                shortcut.removeAll();
+                /*
+                shortcut.add("Enter",function() {
+                    self.sidePane.noteCreate();
+                    self.changeMode('viewer');
+                });
+                */
+                shortcut.add("Ctrl+1",function() {
+                    self.changeMode('viewer');
+                });
+
+                shortcut.add("Ctrl+3",function() {
+                    self.changeMode('note-list');
+                });
+
+                self.mode = 'editor';
+            },
+            setModeNoteList: function() {
+                var self = this;
+                
+                shortcut.removeAll();
+
+                shortcut.add("Ctrl+1",function() {
+                    self.changeMode('viewer');
+                });
+
+                shortcut.add("Ctrl+2",function() {
+                    self.changeMode('editor');
+                });
+
+                self.mode = 'note-list';
+            }/*,
+            setModeNoteEditor: function() {
+                var self = this;
+                
+                shortcut.removeAll();
+
+                shortcut.add("Ctrl+1",function() {
+                    self.changeMode('viewer');
+                });
+
+                shortcut.add("Ctrl+2",function() {
+                    self.changeMode('editor');
+                });
+
+                self.mode = 'note-list';
+            }*/
+        });
+
+        var workspace = new WorkspaceView;
+        workspace.render();
+        
+        //setInterval(function() {
+        //    $('#player-controls').html(parseInt(workspace.viewerPane.getCurrentTime()));
+        //}, 1000);
+            
+      </script>
+</html>
