@@ -46,6 +46,10 @@
                 height: 30px;
                 width: 649px
             }
+            .current {
+                color: red;
+                background-color: blue;
+            }
         </style>
           
         <script id="viewer-pane" type="text/template">
@@ -216,7 +220,7 @@
             },
             noteCreate: function() {
                 if(this.getNoteValue().length > 0) {
-                    this.notes.create({time: this.viewer.getCurrentTime(), content: this.getNoteValue()});
+                    this.notes.create({time: this.viewer.getCurrentTime(), content: this.getNoteValue(), number: this.notes.length});
                 }
                 this.noteDestroy();
                 $('#window-container').trigger("change-mode", "viewer");
@@ -240,12 +244,12 @@
                 'keyup input': 'keyPressEventHandler'
             },
             render: function() {
-                this.$el.html("<tr><td class='time'>" + this.model.get('time') + "</td><td>" + this.model.get('content') + "</td></tr>");
+                this.$el.html("<tr id='note-" + this.model.get('number') + "'><td class='time'>" + this.model.get('time') + "</td><td>" + this.model.get('content') + "</td></tr>");
                 return this;
             },
             renderEdit: function() {
                 $('#window-container').trigger("change-mode", "note-list");
-                this.$el.html("<tr><form><td><input type='text' name='time' class='time' value='" + this.model.get('time') + "' /></td><td><input type='text' name='content' class='content' value='" + this.model.get('content') + "' /></td><td><input type='submit' value='Submit'></td></tr></form>");
+                this.$el.html("<tr id='note-" + this.model.get('number') + "'><form><td><input type='text' name='time' class='time' value='" + this.model.get('time') + "' /></td><td><input type='text' name='content' class='content' value='" + this.model.get('content') + "' /></td><td><input type='submit' value='Submit'></td></tr></form>");
                 this.$el.find(".time").focus();
                 return this;
             },
@@ -274,9 +278,38 @@
                 this.$el.html(this.template());
                 return this;
             },
+            selected: function() {
+                this.$el.find('tr').first().addClass("current");
+            },
             addOne: function(noteModel) {
                 var note = new NoteView({model: noteModel});
                 this.$el.find('#bottom-pane-container').append(note.render().el);
+            },
+            previous: function() {
+                var currentElement = this.$el.find("tr.current");
+                var currentID = currentElement.attr("id");
+                if(currentID === undefined)
+                    return
+                var currentNum = parseInt(currentID.substring("note-".length));
+                
+                var newElement = this.$el.find('#note-'+(currentNum-1));
+                if(newElement.length > 0) {
+                    currentElement.removeClass("current");
+                    newElement.addClass("current");
+                }
+            },
+            next: function() {
+                var currentElement = this.$el.find("tr.current");
+                var currentID = currentElement.attr("id");
+                if(currentID === undefined)
+                    return
+                var currentNum = parseInt(currentID.substring("note-".length));
+                
+                var newElement = this.$el.find('#note-'+(currentNum+1));
+                if(newElement.length > 0) {
+                    currentElement.removeClass("current");
+                    newElement.addClass("current");
+                }
             }
         });
         
@@ -390,6 +423,15 @@
                     self.changeMode('editor');
                 });
 
+                shortcut.add("k",function() {
+                    self.bottomPane.previous();
+                });
+
+                shortcut.add("j",function() {
+                    self.bottomPane.next();
+                });
+
+                self.bottomPane.selected();
                 self.mode = 'note-list';
             }/*,
             setModeNoteEditor: function() {
