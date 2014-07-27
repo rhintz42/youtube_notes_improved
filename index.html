@@ -250,7 +250,7 @@
             renderEdit: function() {
                 $('#window-container').trigger("change-mode", "note-list");
                 this.$el.html("<tr id='note-" + this.model.get('number') + "'><form><td><input type='text' name='time' class='time' value='" + this.model.get('time') + "' /></td><td><input type='text' name='content' class='content' value='" + this.model.get('content') + "' /></td><td><input type='submit' value='Submit'></td></tr></form>");
-                this.$el.find(".time").focus();
+                this.$el.find(".content").focus();
                 return this;
             },
             updateNote: function() {
@@ -271,8 +271,11 @@
         
         var BottomView = Backbone.View.extend({
             template: _.template($('#bottom-pane').html()),
-            initialize: function(notes) {
-                this.listenTo(notes, 'add', this.addOne);
+            initialize: function(notes, viewer) {
+                this.notes = notes;
+                this.viewer = viewer;
+
+                this.listenTo(notes, 'add', this.addNote);
             },
             render: function() {
                 this.$el.html(this.template());
@@ -281,9 +284,15 @@
             selected: function() {
                 this.$el.find('tr').first().addClass("current");
             },
-            addOne: function(noteModel) {
+            addNote: function(noteModel) {
                 var note = new NoteView({model: noteModel});
                 this.$el.find('#bottom-pane-container').append(note.render().el);
+            },
+            newNote: function() {
+                var model = new NoteModel({time: this.viewer.getCurrentTime(), content: '', number: this.notes.length});
+                var note = new NoteView({model: model});
+                this.$el.append(note.renderEdit().el);
+                $('#window-container').trigger("change-mode", "editor");
             },
             previous: function() {
                 var currentElement = this.$el.find("tr.current");
@@ -326,7 +335,7 @@
 
                 this.viewerPane = new ViewerView;
                 this.sidePane = new SideView(this.notes, this.viewerPane);
-                this.bottomPane = new BottomView(this.notes);
+                this.bottomPane = new BottomView(this.notes, this.viewerPane);
                 
                 this.$el.append(this.viewerPane.render().el);
                 this.$el.append(this.sidePane.render().el);
@@ -375,12 +384,14 @@
                 });
                 
                 shortcut.add("c",function() {
-                    self.sidePane.noteNew();
+                    //self.sidePane.noteNew();
+                    self.bottomPane.newNote();
                     self.changeMode('editor');
                 });
                 
                 shortcut.add("i",function() {
-                    self.sidePane.noteNew();
+                    //self.sidePane.noteNew();
+                    self.bottomPane.newNote();
                     self.changeMode('editor');
                 });
 
@@ -433,8 +444,8 @@
 
                 self.bottomPane.selected();
                 self.mode = 'note-list';
-            }/*,
-            setModeNoteEditor: function() {
+            },
+            setModeNoteEdit: function() {
                 var self = this;
                 
                 shortcut.removeAll();
@@ -447,8 +458,9 @@
                     self.changeMode('editor');
                 });
 
+                self.previous_mode = self.mode;
                 self.mode = 'note-list';
-            }*/
+            }
         });
 
         var workspace = new WorkspaceView;
