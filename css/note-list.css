@@ -1,0 +1,23 @@
+#bottom-pane-container {
+    background-color: brown;
+    width: 1080px;
+    //height: 480px;
+    clear: both;
+    table-layout: fixed;
+    //margin: 0px;
+}
+
+#bottom-pane-container tr {
+    height: 30px;
+}
+
+#bottom-pane-container .time {
+    width: 30px;
+    border-right: 1px solid black;
+    background-color: gray;
+}
+
+.current {
+    color: red;
+    background-color: blue;
+}

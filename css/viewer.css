@@ -1,0 +1,11 @@
+#viewer-pane-container {
+    background-color: blue;
+    width: 640px;
+    height: 390px;
+    float: left;
+}
+
+#player-controls {
+    height: 30px;
+    width: 649px
+}
