@@ -35,7 +35,7 @@ var NoteListView = Backbone.View.extend({
         selected.trigger('click');
     },
     newNote: function() {
-        var model = new NoteModel({time: this.viewer.getCurrentTime(), content: '', number: this.notes.length});
+        var model = new NoteModel({time: this.viewer.getCurrentTime()-2, content: '', number: this.notes.length});
         var note = new NoteView(this.notes, model);
         this.$el.append(note.renderEdit().el);
         this.$el.find('.edit .content').focus();

@@ -19,10 +19,10 @@ var ViewerView = Backbone.View.extend({
             self.player = new YT.Player('player', {
                 height: '390',
                 width: '640',
-                videoId: 'fAW1j71o5KU',
+                videoId: 'ZMrWF9d5Vbw',
                 playerVars: { 'controls': 0 },
                 events: {
-                    'onReady': onPlayerStateChange.bind(self),
+                    'onReady': onPlayerReady.bind(self),
                     'onStateChange': onPlayerStateChange.bind(self)
                 }
             });
@@ -30,6 +30,7 @@ var ViewerView = Backbone.View.extend({
 
         // 4. The API will call this function when the video player is ready.
         onPlayerReady = function(event) {
+            this.player.setPlaybackRate(1.5)
             event.target.playVideo();
         }
  
