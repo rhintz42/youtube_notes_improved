@@ -37,3 +37,4 @@ Be able to change the type with a shortcut mid-edit
 
 Add vim controls to editor mode
 
+Add ability of adding youtube URL from query string
