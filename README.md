@@ -19,3 +19,21 @@ Next Steps
 * Should be able to sort the notes by time
 * Should be able to search through the notes
 * Should be able to add tags on the notes
+
+
+
+I'd be really cool if could help take notes on the notes that you make.
+* Like if you had a bunch of definitions and shit, maybe automatically make flash cards
+    * Use regex expressions to easily get all of the definitions and names and such
+* Be able to isolate the notes and allow the user to make notes on those notes
+    * Cornell notes
+
+Have ability to automatically create different types of notes from shortcuts
+* normal note
+* code note
+* quote note
+
+Be able to change the type with a shortcut mid-edit
+
+Add vim controls to editor mode
+

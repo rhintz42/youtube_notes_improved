@@ -2,7 +2,7 @@ var NoteView = Backbone.View.extend({
     class: 'note',
     events: {
         'click': 'renderEdit',
-        'keydown input': 'keyPressEventHandler'
+        'keydown input': 'keyPressEventHandler'//TODO: Remove this once get currentNode working in node list
     },
     initialize: function(notes, model) {
         this.notes = notes;
@@ -31,8 +31,26 @@ var NoteView = Backbone.View.extend({
             this.model.destroy();
         }
     },
+    destroyNote: function() {
+        var time = this.$el.find('.time').val();
+        var content = this.$el.find('.content').val();
+        this.$el.remove();
+        if(this.model.isNew() && content.length > 0) {
+            this.model.set({time: time,content:content});
+            this.notes.create(this.model);
+        } else if(content.length > 0) {
+            this.model.set({time: time,content:content});
+        } else {
+            this.model.destroy();
+        }
+    },
+    //TODO: Take this out eventually, but need to keep track of current node first
     keyPressEventHandler: function(event) {
         if(event.keyCode === 13) {
+            this.updateNote();
+            $('#window-container').trigger("change-mode", "viewer");
+        } else if(event.keyCode === 27) {
+            this.$el.find('.content').val('');
             this.updateNote();
             $('#window-container').trigger("change-mode", "viewer");
         }

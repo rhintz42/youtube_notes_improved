@@ -19,7 +19,7 @@ var ViewerView = Backbone.View.extend({
             self.player = new YT.Player('player', {
                 height: '390',
                 width: '640',
-                videoId: 'ZMrWF9d5Vbw',
+                videoId: 'k20hBed8I9M',
                 playerVars: { 'controls': 0 },
                 events: {
                     'onReady': onPlayerReady.bind(self),
@@ -30,7 +30,8 @@ var ViewerView = Backbone.View.extend({
 
         // 4. The API will call this function when the video player is ready.
         onPlayerReady = function(event) {
-            this.player.setPlaybackRate(1.5)
+            this.player.setPlaybackRate(1.5);
+            this.player.setPlaybackQuality("highres");
             event.target.playVideo();
         }
  
@@ -62,6 +63,37 @@ var ViewerView = Backbone.View.extend({
     goForward: function(seconds) {
         var currentTime = this.getCurrentTime();
         this.seekTo(currentTime + seconds);
+    },
+    decrementSpeed: function() {
+        var currentSpeedIndex = this.player.getAvailablePlaybackRates().indexOf(this.player.getPlaybackRate());
+        var nextSpeed = this.player.getAvailablePlaybackRates()[currentSpeedIndex-1];
+
+        if(!!nextSpeed) {
+            this.setSpeed(nextSpeed);
+            return true;
+        } else {
+            return false;
+        }
+    },
+    incrementSpeed: function() {
+        var currentSpeedIndex = this.player.getAvailablePlaybackRates().indexOf(this.player.getPlaybackRate());
+        var nextSpeed = this.player.getAvailablePlaybackRates()[currentSpeedIndex+1];
+
+        if(!!nextSpeed) {
+            this.setSpeed(nextSpeed);
+            return true;
+        } else {
+            return false;
+        }
+    },
+    setSpeed: function(speed) {
+        this.player.setPlaybackRate(speed);
+    },
+    getSpeed: function() {
+        this.player.getPlaybackRate();
+    },
+    getAvailableSpeeds: function() {
+        this.player.getAvailablePlaybackRates();
     },
     toggle: function() {
         var playerState = this.player.getPlayerState();

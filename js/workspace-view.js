@@ -54,8 +54,19 @@ var WorkspaceView = Backbone.View.extend({
         shortcut.add("j",function() {
             self.viewerPane.goBack(2);
         });
+
         shortcut.add("h",function() {
             self.viewerPane.goBack(10);
+        });
+
+        /* Slow Down */
+        shortcut.add("s",function() {
+            self.viewerPane.decrementSpeed();
+        });
+
+        /* Speed Up */
+        shortcut.add("f",function() {
+            self.viewerPane.incrementSpeed();
         });
         
         shortcut.add("c",function() {
@@ -86,10 +97,45 @@ var WorkspaceView = Backbone.View.extend({
         shortcut.add("Ctrl+3",function() {
             self.changeMode('note-list');
         });
+        
+        shortcut.add("Ctrl+k",function() {
+            self.viewerPane.toggle();
+        });
+        
+        shortcut.add("Ctrl+l",function() {
+            self.viewerPane.goForward(2);
+        });
+        shortcut.add("Ctrl+º",function() {
+            self.viewerPane.goForward(10);
+        });
+        
+        shortcut.add("Ctrl+j",function() {
+            self.viewerPane.goBack(2);
+        });
+
+        shortcut.add("Ctrl+h",function() {
+            self.viewerPane.goBack(10);
+        });
+
+        /* Slow Down */
+        shortcut.add("Ctrl+s",function() {
+            self.viewerPane.decrementSpeed();
+        });
+
+        /* Speed Up */
+        shortcut.add("Ctrl+f",function() {
+            self.viewerPane.incrementSpeed();
+        });
 
         /*
+        shortcut.add("esc",function() {
+            
+        });
+
         shortcut.add("Enter",function() {
-            self.noteListPane.editNote();
+            //Need to be able to get current note
+            self.noteListPane.currentNote.updateNote();
+            self.changeMode('editor');
         });
         */
 
