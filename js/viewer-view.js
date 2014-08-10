@@ -19,7 +19,7 @@ var ViewerView = Backbone.View.extend({
             self.player = new YT.Player('player', {
                 height: '390',
                 width: '640',
-                videoId: 'k20hBed8I9M',
+                videoId: '0PSdzUxRYpA',
                 playerVars: { 'controls': 0 },
                 events: {
                     'onReady': onPlayerReady.bind(self),
